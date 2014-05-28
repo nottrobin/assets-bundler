@@ -1,0 +1,13 @@
+assets-server:
+    app_tgz_url: {{server-url}}
+    environment_variables: "OS_AUTH_URL={{swift_auth}} OS_USERNAME={{swift_username}} OS_PASSWORD={{swift_password}} OS_TENANT_NAME={{swift_tenant}}"
+    apt_dependencies: "libjpeg-dev zlib1g-dev libpng12-dev libmagickwand-dev python-dev"
+    pip_no_index: True  # Shouldn't need PyPi - dependencies are in "pip-cache"
+    nagios_check_uri: "/v1/"
+    nagios_environment: "assets-bundle"
+assets-frontend:
+    app_tgz_url: {{frontend-url}}
+    pip_no_index: True  # Shouldn't need PyPi - dependencies are in "pip-cache"
+    nagios_check_uri: "/?-"
+    nagios_check_string: "Search assets"
+    nagios_environment: "assets-bundle"

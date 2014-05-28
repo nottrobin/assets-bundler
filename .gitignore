@@ -1,6 +1,6 @@
 assets-server-build.tar.gz
 assets-frontend-build.tar.gz
-charms-config.yaml
+/charms-config.yaml
 assets-frontend
 assets-server
 .bzr*
