@@ -1,0 +1,13 @@
+assets-bundle:
+    services:
+        assets-server:
+            charm: "cs:~nottrobin/trusty/apache2-wsgi"
+        assets-frontend:
+            charm: "cs:~nottrobin/trusty/apache2-wsgi"
+        mongodb:
+            charm: "cs:precise/mongodb"
+    relations:
+        - - "assets-server:web-server"
+          - "assets-frontend:http"
+        - - "assets-server:mongodb"
+          - "mongodb:database"
