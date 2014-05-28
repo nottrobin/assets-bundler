@@ -6,16 +6,11 @@ timestamp := $(shell echo '1401268528')
 publish:
 	$(MAKE) clean  # Delete old files
 
-	$(MAKE) juju-bundle  #
+	$(MAKE) juju-bundle  # Start juju instances
 
-	SERVER_TGZ_URL=$(shell make --silent SERVER_TGZ_URL) \
-	FRONTEND_TGZ_URL=$(shell make --silent FRONTEND_TGZ_URL) \
-	$(MAKE) charms-config.yaml
+	$(MAKE) config  # Create charm config file
 
-	# Give the container read access
-	swift post -r .r:* charm-assets
-
-	$(MAKE) apply-charms-config
+	$(MAKE) apply-charms-config  # Apply config to charms
 
 # Setup juju bundle
 # ===
@@ -23,18 +18,16 @@ publish:
 juju-bundle:
 	juju-deployer -c assets-bundle.yaml
 
-SERVER_TGZ_URL:
-	make assets-server-build.tar.gz
-	$(eval tgz_filename := $(shell swift upload charm-assets --object-name assets-server-build.$(timestamp).tar.gz assets-server-build.tar.gz))  # Upload the zip to swift
-	echo $(shell swift stat -v charm-assets $(tgz_filename) | grep -o 'http.*')
-
-FRONTEND_TGZ_URL:
-	make assets-frontend-build.tar.gz
-	$(eval tgz_filename := $(shell swift upload charm-assets --object-name assets-frontend-build.$(timestamp).tar.gz assets-frontend-build.tar.gz))  # Upload the zip to swift
-	echo $(shell swift stat -v charm-assets $(tgz_filename) | grep -o 'http.*')
-
 # Configure
 # ===
+config:
+	SERVER_TGZ_URL=$(shell $(MAKE) --silent SERVER_TGZ_URL) \
+	FRONTEND_TGZ_URL=$(shell $(MAKE) --silent FRONTEND_TGZ_URL) \
+	$(MAKE) charms-config.yaml  # Create config file
+
+	# Give the container read access
+	swift post -r .r:* charm-assets
+
 charms-config.yaml:
 	# First check swift credentials
 	if [[ '$(SERVER_TGZ_URL)' == '' ]]; then echo "SERVER_TGZ_URL not found - check your OS swift settings"; exit 1; fi
@@ -60,16 +53,21 @@ apply-charms-config:
 # Assets server
 # ===
 
+SERVER_TGZ_URL:
+	$(MAKE) assets-server-build.tar.gz
+	$(eval tgz_filename := $(shell swift upload charm-assets --object-name assets-server-build.$(timestamp).tar.gz assets-server-build.tar.gz))  # Upload the zip to swift
+	echo $(shell swift stat -v charm-assets $(tgz_filename) | grep -o 'http.*')
+
 assets-server-build.tar.gz:
-	$(MAKE) assets-server
+	$(MAKE) assets-server-repo
 
 	$(MAKE) assets-server/update-pip-cache
 
 	tar --exclude-vcs -czf assets-server-build.tar.gz assets-server
 
-assets-server:
-	-git clone git@github.com:nottrobin/assets-server.git assets-server
-	-git -C assets-server pull
+assets-server-repo:
+	-bzr branch lp:assets-server assets-server
+	cd assets-server && bzr pull
 
 assets-server/update-pip-cache:
 	mkdir -p assets-server/pip-cache
@@ -79,16 +77,21 @@ assets-server/update-pip-cache:
 # Assets frontend
 # ===
 
+FRONTEND_TGZ_URL:
+	$(MAKE) assets-frontend-build.tar.gz
+	$(eval tgz_filename := $(shell swift upload charm-assets --object-name assets-frontend-build.$(timestamp).tar.gz assets-frontend-build.tar.gz))  # Upload the zip to swift
+	echo $(shell swift stat -v charm-assets $(tgz_filename) | grep -o 'http.*')
+
 assets-frontend-build.tar.gz:
-	$(MAKE) assets-frontend
+	$(MAKE) assets-frontend-repo
 
 	$(MAKE) assets-frontend/update-pip-cache
 
 	tar --exclude-vcs -czf assets-frontend-build.tar.gz assets-frontend
 
-assets-frontend:
-	-git clone git@github.com:nottrobin/assets-frontend.git assets-frontend
-	-git -C assets-frontend pull
+assets-frontend-repo:
+	-bzr branch lp:assets-frontend assets-frontend
+	cd assets-frontend && bzr pull
 
 assets-frontend/update-pip-cache:
 	mkdir -p assets-frontend/pip-cache
