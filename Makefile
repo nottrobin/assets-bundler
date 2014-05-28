@@ -103,6 +103,6 @@ clean:
 # Aliases
 # ===
 it:
-	# nothing
+	# And so
 
 so: publish
