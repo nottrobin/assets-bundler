@@ -3,3 +3,4 @@ assets-frontend-build.tar.gz
 charms-config.yaml
 assets-frontend
 assets-server
+.bzr*
