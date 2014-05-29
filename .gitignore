@@ -1,6 +1,7 @@
-assets-server-build.tar.gz
-assets-frontend-build.tar.gz
+/assets-server-build*.tar.gz
+/assets-frontend-build*.tar.gz
 /charms-config.yaml
-assets-frontend
-assets-server
+/assets-frontend
+/assets-server
 .bzr*
+/Makefile.qa
