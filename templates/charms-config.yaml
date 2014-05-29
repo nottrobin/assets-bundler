@@ -7,7 +7,9 @@ assets-server:
     nagios_environment: "assets-bundle"
 assets-frontend:
     app_tgz_url: {{frontend-url}}
+    apt_dependencies: "python-ubuntu-sso-client libapache2-mod-python python-apache-openid"
     pip_no_index: True  # Shouldn't need PyPi - dependencies are in "pip-cache"
-    nagios_check_uri: "/?-"
+    apache_conf_path: 'conf/wsgi-app.conf'
+    nagios_check_uri: "/?=-"
     nagios_check_string: "Search assets"
     nagios_environment: "assets-bundle"
