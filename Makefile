@@ -1,7 +1,6 @@
 SHELL := /bin/bash
 
-# timestamp := $(shell date +%s)
-timestamp := $(shell echo '1401268528')
+CONTAINER_NAME=charm-assets
 
 publish:
 	$(MAKE) clean  # Delete old files
@@ -21,12 +20,14 @@ juju-bundle:
 # Configure
 # ===
 config:
-	SERVER_TGZ_URL=$(shell $(MAKE) --silent SERVER_TGZ_URL) \
-	FRONTEND_TGZ_URL=$(shell $(MAKE) --silent FRONTEND_TGZ_URL) \
+	rm -f charms-config.yaml
+
+	SERVER_TGZ_URL=$(shell $(MAKE) --no-print-directory SERVER_TGZ_URL | tail -n 1) \
+	FRONTEND_TGZ_URL=$(shell $(MAKE) --no-print-directory FRONTEND_TGZ_URL | tail -n 1) \
 	$(MAKE) charms-config.yaml  # Create config file
 
 	# Give the container read access
-	swift post -r .r:* charm-assets
+	swift post -r .r:* $(CONTAINER_NAME)
 
 charms-config.yaml:
 	# First check swift credentials
@@ -54,11 +55,20 @@ apply-charms-config:
 # ===
 
 SERVER_TGZ_URL:
-	$(MAKE) assets-server-build.tar.gz
-	$(eval tgz_filename := $(shell swift upload charm-assets --object-name assets-server-build.$(timestamp).tar.gz assets-server-build.tar.gz))  # Upload the zip to swift
-	echo $(shell swift stat -v charm-assets $(tgz_filename) | grep -o 'http.*')
+	$(MAKE) assets-server-build
 
-assets-server-build.tar.gz:
+	$(eval BUILD_FILENAME=assets-server-build.$(shell sha1sum assets-server-build.tar.gz | grep -o '^\w*').tar.gz)
+
+	cp -n assets-server-build.tar.gz $(BUILD_FILENAME)
+
+	if [[ ! $$(swift stat $(CONTAINER_NAME) $(BUILD_FILENAME)) ]]; then swift upload $(CONTAINER_NAME) $(BUILD_FILENAME); fi
+
+	# Upload the zip to swift
+	swift stat -v $(CONTAINER_NAME) $(BUILD_FILENAME) | grep -o 'http.*'
+
+assets-server-build:
+	rm -f assets-server-build.tar.gz
+
 	$(MAKE) assets-server-repo
 
 	$(MAKE) assets-server/update-pip-cache
@@ -78,11 +88,20 @@ assets-server/update-pip-cache:
 # ===
 
 FRONTEND_TGZ_URL:
-	$(MAKE) assets-frontend-build.tar.gz
-	$(eval tgz_filename := $(shell swift upload charm-assets --object-name assets-frontend-build.$(timestamp).tar.gz assets-frontend-build.tar.gz))  # Upload the zip to swift
-	echo $(shell swift stat -v charm-assets $(tgz_filename) | grep -o 'http.*')
+	$(MAKE) assets-frontend-build
 
-assets-frontend-build.tar.gz:
+	$(eval BUILD_FILENAME=assets-frontend-build.$(shell sha1sum assets-frontend-build.tar.gz | grep -o '^\w*').tar.gz)
+
+	cp -n assets-frontend-build.tar.gz assets-frontend-build.$(BUILD_SHA1).tar.gz
+
+	if [[ ! $$(swift stat $(CONTAINER_NAME) $(BUILD_FILENAME)) ]]; then swift upload $(CONTAINER_NAME) $(BUILD_FILENAME); fi
+
+	# Upload the zip to swift
+	swift stat -v $(CONTAINER_NAME) $(BUILD_FILENAME) | grep -o 'http.*'
+
+assets-frontend-build:
+	rm -f assets-frontend-build.tar.gz
+
 	$(MAKE) assets-frontend-repo
 
 	$(MAKE) assets-frontend/update-pip-cache
@@ -98,10 +117,10 @@ assets-frontend/update-pip-cache:
 	pip install --upgrade --download assets-frontend/pip-cache -r assets-frontend/requirements.txt
 
 
-# Clean up created files
+# Clean up all created files
 # ===
 clean:
-	rm -f charms-config.yaml assets-server-build.tar.gz assets-frontend-build.tar.gz
+	rm -f charms-config.yaml assets-server-build*.tar.gz assets-frontend-build*.tar.gz assets-server assets-frontend
 
 # Aliases
 # ===
